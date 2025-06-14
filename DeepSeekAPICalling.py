@@ -1,23 +1,26 @@
-import requests  # 导入requests库用于发送HTTP请求
-import json  # 导入json库用于处理JSON数据
-
-api_key = 'sk-9052aa7aa92f48089b15fd204ffb0279'  # DeepSeek API的密钥
-url = "https://api.deepseek.com/chat/completions"  # DeepSeek API的端点URL
-
-msg = [{"content":"You are a helpful assistant","role":"system"},  # 系统角色提示词
-       {"content":"宋朝延续多少年,输出不超过50字","role":"user"}]  # 用户输入的消息
-
-payload = json.dumps({  # 构建请求体并转换为JSON字符串
-  "messages": msg,  # 包含对话历史的消息列表
-  "model": "deepseek-chat",  # 指定使用的模型名称
+import requests  # 导入requests库，用于发送HTTP请求
+import json  # 导入json库，用于处理JSON数据
+api_key = 'sk-9052aa7aa92f48089b15fd204ffb0279'  # 设置DeepSeek API的访问密钥
+url = "https://api.deepseek.com/chat/completions"  # 设置DeepSeek API的端点URL
+msg = [{"content":"You are a helpful assistant","role":"system"},{"content":"宋朝延续多少年,输出不超过50字","role":"user"}]  # 定义对话消息列表，包含系统提示和用户问题
+payload = json.dumps({  # 构建API请求的负载数据并转换为JSON字符串
+  "messages": msg,  # 设置对话消息
+  "model": "deepseek-chat",  # 指定使用的AI模型
+  "stream": True,  # 启用流式输出
+  "max_tokens": 60,  # 设置最大生成token数
 })
-
 headers = {  # 设置HTTP请求头
   'Content-Type': 'application/json',  # 指定请求内容类型为JSON
   'Accept': 'application/json',  # 指定接受的响应类型为JSON
-  'Authorization': f'Bearer {api_key}'  # 设置身份验证token
+  "Authorization": f"Bearer {api_key}"  # 设置API认证信息
 }
-response = requests.request("POST", url, headers=headers, data=payload)  # 发送POST请求到API
-result = response.json()  # 将API响应转换为JSON格式
-ai_response = result["choices"][0]["message"]["content"]  # 从JSON响应中提取AI的回答内容
-print(ai_response)  # 打印API的响应内容
+# 逐块处理响应
+try:  # 开始异常处理
+    response = requests.request("POST", url, headers=headers, data=payload, stream=True)  # 发送POST请求并获取响应
+    response.raise_for_status()  # 检查HTTP响应状态，如果不是200则抛出异常
+    for chunk in response.iter_lines():  # 逐行读取流式响应
+        if chunk:  # 如果数据块不为空
+            decoded_chunk = chunk.decode('utf-8').strip()  # 将字节流解码为字符串并去除首尾空白
+            print(decoded_chunk)  # 打印解码后的数据块
+except requests.exceptions.RequestException as e:  # 捕获请求过程中的异常
+    print(f"\n请求失败: {e}")  # 打印错误信息
